@@ -25,6 +25,7 @@ def main():
         df["全周"][laminate_name] = laminate.total_count - laminate.obi_count
         df["オビ"][laminate_name] = laminate.obi_count
         df["厚さ"][laminate_name] = laminate.thickness
+        df["全周厚さ"][laminate_name] = laminate.thickness_zenshu
         df["相当縦弾性率"][laminate_name] = laminate.E_equiv
         df["相当横弾性率"][laminate_name] = laminate.G_equiv
         df["ポアソン比"][laminate_name] = laminate.nu_equiv

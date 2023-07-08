@@ -21,6 +21,7 @@ class Laminate:
 
         self.prepreg = Prepreg(prepreg)
         self.thickness = self.prepreg.t * len(self.angles)
+        self.thickness_zenshu = self.prepreg.t * (self.total_count - self.obi_count)
         self.E_equiv, self.nu_equiv, self.G_equiv = stiffness_index(
             self.angles, self.prepreg
         )
