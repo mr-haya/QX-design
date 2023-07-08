@@ -54,7 +54,29 @@ class Airfoil:
         return max_camber, at
 
     def leading_edge_radius(self):
-        return 0.1
+        # # 翼型の座標データ
+        # # ここでは、翼型の座標データが (x, y) の形式で格納されているとします
+
+        # # 座標データをパラメトリック曲線に変換
+        # tck, u = interpolate.splprep(self.dat, s=0)
+
+        # # 導関数と2次導関数を計算
+        # dx_dt, dy_dt = interpolate.splev(u, tck, der=1)
+        # d2x_dt2, d2y_dt2 = interpolate.splev(u, tck, der=2)
+
+        # # 曲率を計算
+        # curvature = np.abs(dx_dt * d2y_dt2 - dy_dt * d2x_dt2) / np.power(
+        #     dx_dt**2 + dy_dt**2, 3 / 2
+        # )
+
+        # # 最前部の曲率を求める
+        # leading_edge_curvature = np.min(curvature)
+
+        # # 前縁半径を求める（曲率の逆数）
+        # leading_edge_radius = 1 / leading_edge_curvature
+
+        # rho = leading_edge_radius / self.max_thickness()
+        return 1
 
     def trairing_edge_angle(self):
         return 0.1

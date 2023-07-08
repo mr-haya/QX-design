@@ -49,7 +49,7 @@ def main():
             round(cam * 100, 1),
             cmax_at * 100,
         )
-        df["前縁半径"][foil_name] = foil.leading_edge_radius()
+        df["前縁曲率半径比"][foil_name] = foil.leading_edge_radius()
         df["後縁角"][foil_name] = foil.trairing_edge_angle()
         # df["最大揚力係数"][foil_name] = foil.CL_max(df["Re数"][foil_name])
         # df["最大揚抗比"][foil_name], df["l_dmax_at"][foil_name] = foil.L_D_max(
