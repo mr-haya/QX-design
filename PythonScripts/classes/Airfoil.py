@@ -1,69 +1,67 @@
+"""
+翼型クラス
+
+Attributes:
+    name (str): 翼型名
+    dat (np.array): 翼型座標datデータ
+    geometry (function): 翼型の上半分を左右反転させたdatデータをスプライン曲線で補間した関数。これで翼型の任意xでのy座標を、定義域を-1~1として.geometry([x])で取得できる。
+    coefs (dict): XFLR5で出力したtxtデータから補間した翼型の空力係数モデル。あるRe、alphaにおけるCLは.coefs["CL"]([alpha, Re])[0]で取得できる。
+    cl (function): 揚力係数補間関数
+    cd (function): 抗力係数補間関数
+    cm (function): モーメント係数補間関数
+    
+    
+Methods:
+    thickness(x): 任意xにおける翼厚を返す
+    camber(x):任意xにおけるキャンバーを返す
+    
+
+"""
+
 import os
+import xlwings as xw
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
 from scipy import interpolate
 
-from config import settings
+import config.cell_adress as ca
+import config.sheet_name as sn
+import config.config as cf
 
 
 class Airfoil:
-    def __init__(
-        self,
-        foilname,
-        Re_min=None,
-        Re_max=None,
-        Re_step=None,
-        alpha_min=None,
-        alpha_max=None,
-        alpha_step=None,
-    ):
+    def __init__(self, foilname):
+        # エクセルシートを取得
+        wb = xw.Book.caller()
+        sheet = wb.sheets[sn.foil]
+
+        # 解析範囲を読み込む
+        alpha_min = sheet.range(ca.alpha_min_cell).value
+        alpha_max = sheet.range(ca.alpha_max_cell).value
+        alpha_step = sheet.range(ca.alpha_step_cell).value
+        Re_min = sheet.range(ca.Re_min_cell).value
+        Re_max = sheet.range(ca.Re_max_cell).value
+        Re_step = sheet.range(ca.Re_step_cell).value
+        self.coefs = coefs_model(
+            foilname, alpha_min, alpha_max, alpha_step, Re_min, Re_max, Re_step
+        )
+
         self.name = foilname
         self.dat = fetch_dat(foilname)
-        # 翼型座標を[-1, 1]に正規化
         self.normalized_dat = normalize_dat(self.dat)
-        # 翼型座標補間関数を作成
         self.geometry = interpolate.interp1d(
             self.normalized_dat[:, 0],
             self.normalized_dat[:, 1],
             kind="cubic",
             fill_value="extrapolate",
         )
-        # 空力係数を補間
-        if Re_min is not None:
-            self.coefs = coefs_model(
-                foilname, Re_min, Re_max, Re_step, alpha_min, alpha_max, alpha_step
-            )
-
-    def thickness(self, x):
-        return self.geometry([-x]) - self.geometry([x])
-
-    def max_thickness(self):
-        at, max_thickness = max(
+        self.tmax_at, self.thickness_max = max(
             [(x, self.thickness(x)) for x in np.arange(0, 1, 0.001)], key=lambda x: x[1]
         )
-        return max_thickness[0], at
-
-    def camber(self, x):
-        return (self.geometry(-x) + self.geometry(x)) / 2
-
-    def max_camber(self):
-        at, max_camber = max(
+        self.cmax_at, self.camber_max = max(
             [(x, self.camber(x)) for x in np.arange(0, 1, 0.001)], key=lambda x: x[1]
         )
-        return max_camber, at
-
-    def leading_edge_radius(self):
-        # # 翼型の座標データ
-        # # ここでは、翼型の座標データが (x, y) の形式で格納されているとします
-
-        # # 座標データをパラメトリック曲線に変換
-        # tck, u = interpolate.splprep(self.dat, s=0)
-
-        # # 導関数と2次導関数を計算
-        # dx_dt, dy_dt = interpolate.splev(u, tck, der=1)
-        # d2x_dt2, d2y_dt2 = interpolate.splev(u, tck, der=2)
-
         # # 曲率を計算
         # curvature = np.abs(dx_dt * d2y_dt2 - dy_dt * d2x_dt2) / np.power(
         #     dx_dt**2 + dy_dt**2, 3 / 2
@@ -74,27 +72,38 @@ class Airfoil:
 
         # # 前縁半径を求める（曲率の逆数）
         # leading_edge_radius = 1 / leading_edge_curvature
+        self.leading_edge_radius = 1  # leading_edge_radius / self.max_thickness()
+        self.trailing_edge_angle = 0.1
+        area = 0
+        for i in range(int(len(self.dat) / 2) - 1):
+            area += (
+                (
+                    (self.dat[i + 1][1] - self.dat[-(i + 1)][1])
+                    + (self.dat[i][1] - self.dat[-i][1])
+                )
+                * (self.dat[i][0] - self.dat[i + 1][0])
+                / 2
+            )
+        self.area = area
 
-        # rho = leading_edge_radius / self.max_thickness()
-        return 1
+    def y(self, x):
+        return self.geometry([x])[0]
 
-    def trairing_edge_angle(self):
-        return 0.1
+    def thickness(self, x):
+        return self.y(-x) - self.y(x)
 
-    def point(self, x):
-        return self.geometry(x)
+    def camber(self, x):
+        return (self.y(-x) + self.y(x)) / 2
 
     def CL_max(self, Re):
         max_val = -np.inf
         max_alpha = None
         for alpha in np.arange(-5, 20, 0.01):
             val = self.coefs["CL"]([alpha, Re])
-
             # If this point has a higher value than the current max, update the max
             if val > max_val:
                 max_val = val
                 max_alpha = alpha
-
         return max_val[0]
 
     def L_D_max(self, Re):
@@ -102,16 +111,20 @@ class Airfoil:
         max_alpha = None
         for alpha in np.arange(-5, 20, 0.01):
             val = self.coefs["CL"]([alpha, Re]) / self.coefs["CD"]([alpha, Re])
-
             # If this point has a higher value than the current max, update the max
             if val > max_val:
                 max_val = val
                 max_alpha = alpha
-
         return max_val[0], max_alpha
 
     def CL(self, alpha, Re):
         return self.coefs["CL"]([alpha, Re])[0]
+
+    def CD(self, alpha, Re):
+        return self.coefs["CD"]([alpha, Re])[0]
+
+    def CDp(self, alpha, Re):
+        return self.coefs["CDp"]([alpha, Re])[0]
 
     def L_D(self, alpha, Re):
         return self.coefs["CL"]([alpha, Re])[0] / self.coefs["CD"]([alpha, Re])[0]
@@ -124,6 +137,12 @@ class Airfoil:
 
     def Top_Xtr(self, alpha, Re):
         return self.coefs["Top_Xtr"]([alpha, Re])[0]
+
+    def Bot_Xtr(self, alpha, Re):
+        return self.coefs["Bot_Xtr"]([alpha, Re])[0]
+
+    def Cpmin(self, alpha, Re):
+        return self.coefs["Cpmin"]([alpha, Re])[0]
 
     def outline(self):
         dpi = 72  # 画像の解像度
@@ -139,18 +158,72 @@ class Airfoil:
         ax.spines["left"].set_visible(False)
         return fig
 
-    def length(self, start, end):
+    def perimeter(self, start, end):
         start_index = np.argmin(np.abs(self.normalized_dat[:, 0] - start))
         end_index = np.argmin(np.abs(self.normalized_dat[:, 0] - end))
-        length = 0
+        perimeter = 0
         for i in range(start_index, end_index):
-            length += np.sqrt(
+            perimeter += np.sqrt(
                 (self.dat[i + 1][1] - self.dat[i][1]) ** 2
                 + (self.dat[i + 1][0] - self.dat[i][0]) ** 2
             )
-        return length
+        return perimeter
 
-    def area(self):
+    def show_l_d(self):
+        l_d = self.coefs("CL") / self.coefs("CD")
+        X1, Y1 = np.meshgrid(l_d.index, l_d.columns, indexing="ij")
+        cf.show_data((X1, Y1, l_d.values))
+        plt.show()
+
+
+class MixedAirfoil(Airfoil):  # とりあえず幾何形状とCL,CD,Cmのみを混ぜる
+    def __init__(self, airfoil1, airfoil2, ratio):  # ratioはairfoil2の割合
+        self.airfoil1 = airfoil1
+        self.airfoil2 = airfoil2
+        self.ratio = ratio
+        self.dat = np.array(
+            [
+                [
+                    self.airfoil1.dat[i][0] * (1 - ratio)
+                    + self.airfoil2.dat[i][0] * ratio,
+                    self.airfoil1.dat[i][1] * (1 - ratio)
+                    + self.airfoil2.dat[i][1] * ratio,
+                ]
+                for i in range(len(airfoil1.dat))
+            ]
+        )
+        self.normalized_dat = np.array(
+            [
+                [
+                    self.airfoil1.normalized_dat[i][0] * (1 - ratio)
+                    + self.airfoil2.normalized_dat[i][0] * ratio,
+                    self.airfoil1.normalized_dat[i][1] * (1 - ratio)
+                    + self.airfoil2.normalized_dat[i][1] * ratio,
+                ]
+                for i in range(len(self.airfoil1.normalized_dat))
+            ]
+        )
+        self.geometry = interpolate.interp1d(
+            self.normalized_dat[:, 0],
+            self.normalized_dat[:, 1],
+            kind="cubic",
+            fill_value="extrapolate",
+        )
+
+        self.tmax_at, self.thickness_max = max(
+            [(x, self.thickness(x)) for x in np.arange(0, 1, 0.001)], key=lambda x: x[1]
+        )
+        self.cmax_at, self.camber_max = max(
+            [(x, self.camber(x)) for x in np.arange(0, 1, 0.001)], key=lambda x: x[1]
+        )
+        self.leading_edge_radius = (
+            self.airfoil1.leading_edge_radius * (1 - ratio)
+            + self.airfoil2.leading_edge_radius * ratio
+        )
+        self.trailing_edge_angle = (
+            self.airfoil1.trailing_edge_angle * (1 - ratio)
+            + self.airfoil2.trailing_edge_angle * ratio
+        )
         area = 0
         for i in range(int(len(self.dat) / 2) - 1):
             area += (
@@ -161,18 +234,30 @@ class Airfoil:
                 * (self.dat[i][0] - self.dat[i + 1][0])
                 / 2
             )
-        return area
+        self.area = area
 
-    def show_l_d(self):
-        l_d = self.coefs("CL") / self.coefs("CD")
-        X1, Y1 = np.meshgrid(l_d.index, l_d.columns, indexing="ij")
-        show_data((X1, Y1, l_d.values))
-        plt.show()
+    def CL(self, alpha, Re):
+        return (
+            self.airfoil1.CL(alpha, Re) * (1 - self.ratio)
+            + self.airfoil2.CL(alpha, Re) * self.ratio
+        )
+
+    def CD(self, alpha, Re):
+        return (
+            self.airfoil1.CD(alpha, Re) * (1 - self.ratio)
+            + self.airfoil2.CD(alpha, Re) * self.ratio
+        )
+
+    def Cm(self, alpha, Re):
+        return (
+            self.airfoil1.Cm(alpha, Re) * (1 - self.ratio)
+            + self.airfoil2.Cm(alpha, Re) * self.ratio
+        )
 
 
 # 翼型名からフォルダのパスを作成
 def path(foil_name):
-    return os.path.join(os.path.dirname(__file__), settings.airfoil_path, foil_name)
+    return os.path.join(os.path.dirname(__file__), cf.AIRFOIL_PATH, foil_name)
 
 
 # datファイルを取得
@@ -211,7 +296,7 @@ def coefs_model(foilname, alpha_min, alpha_max, alpha_step, Re_min, Re_max, Re_s
     coefs_model = {}
 
     i = 0
-    for coef_name in settings.coef_index.keys():
+    for coef_name in cf.COEF_INDEX.keys():
         # スライスを取り出し、それをDataFrameに変換
         df = pd.DataFrame(
             coef_array[i], index=alpha_list, columns=Re_list, dtype="float"
@@ -239,6 +324,7 @@ def coefs_model(foilname, alpha_min, alpha_max, alpha_step, Re_min, Re_max, Re_s
 # xflr5の解析結果を取得
 # coef_arrayは3次元行列で、[係数, α, Re]
 def xflr5_output(foil_name, alpha_list, Re_list):
+    foil_name = str(foil_name)
     alpha_min = alpha_list[0]
     alpha_step = alpha_list[1] - alpha_list[0]
     alpha_num = len(alpha_list)
@@ -248,7 +334,7 @@ def xflr5_output(foil_name, alpha_list, Re_list):
     Re_num = len(Re_list)
 
     # データを格納するためのリスト[係数, α, Re]
-    coef_array = np.nan * np.ones((len(settings.coef_index), alpha_num, Re_num))
+    coef_array = np.nan * np.ones((len(cf.COEF_INDEX), alpha_num, Re_num))
 
     # データを読み込む
     for i in range(Re_num):
@@ -263,8 +349,7 @@ def xflr5_output(foil_name, alpha_list, Re_list):
         # テキストファイルの読み込みとデータの抽出
         with open(file_path, "r") as file:
             lines = file.readlines()
-            start_index = 11
-            for line in lines[start_index:]:
+            for line in lines[cf.START_INDEX :]:
                 values = line.strip().split()
 
                 # 空白の場合はスキップ
@@ -275,25 +360,9 @@ def xflr5_output(foil_name, alpha_list, Re_list):
                 alpha_in_line = float(values[0])
                 if alpha_in_line in alpha_list:
                     j = 0
-                    for coef_index in settings.coef_index.values():
+                    for coef_index in cf.COEF_INDEX.values():
                         extracted_value = float(values[coef_index])
                         alpha_index = round((alpha_in_line - alpha_min) / alpha_step)
                         coef_array[j, alpha_index, i] = extracted_value
                         j += 1
     return coef_array
-
-
-def show_data(type="wireframe", *args):
-    fig = plt.figure(figsize=(5, 5), dpi=100)
-    ax = fig.add_subplot(111, projection="3d")
-    for arg in args:
-        ax.plot_wireframe(
-            arg[0], arg[1], arg[2]
-        ) if type == "wireframe" else ax.plot_surface(
-            arg[0], arg[1], arg[2]
-        ) if type == "surface" else ax.plot(
-            arg[0], arg[1], arg[2]
-        )
-    ax.set_xlabel("X")
-    ax.set_ylabel("Y")
-    ax.set_zlabel("Z")

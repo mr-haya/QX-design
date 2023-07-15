@@ -1,25 +1,28 @@
+import xlwings as xw
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
-from scipy import interpolate
+
+import config.cell_adress as ca
+import config.sheet_name as sn
+import config.config as cf
 
 from .Prepreg import Prepreg
 
 
 class Laminate:
-    def __init__(self, laminate_name, prepreg, laminate_angles):
-        self.name = laminate_name
+    def __init__(self, laminate_name):
+        wb = xw.Book.caller()
+        laminate_sheet = wb.sheets[sn.laminate]
+        laminate_df = (
+            laminate_sheet[ca.laminate_cell].options(pd.DataFrame, index=1).value
+        )
 
-        # Split the string into elements
-        elements = laminate_angles.split(",")
-        # Count the total number of elements
+        elements = laminate_df["積層構成"][laminate_name].split(",")
         self.total_count = len(elements)
-        # Count the number of elements containing "オビ"
         self.obi_count = sum("オビ" in element for element in elements)
-        # Remove "オビ" from the elements and convert them to integers
         self.angles = [int(element.replace("オビ", "")) for element in elements]
 
-        self.prepreg = Prepreg(prepreg)
+        self.prepreg = Prepreg(laminate_df["プリプレグ"][laminate_name])
         self.thickness = self.prepreg.t * len(self.angles)
         self.thickness_zenshu = self.prepreg.t * (self.total_count - self.obi_count)
         self.E_equiv, self.nu_equiv, self.G_equiv = stiffness_index(

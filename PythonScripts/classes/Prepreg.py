@@ -7,11 +7,10 @@ from config import cell_adress as ca
 
 class Prepreg:
     def __init__(self, name):
-        self.name = name
-
         wb = xw.Book.caller()
-        sheet = wb.sheets[sn.properties]
+        sheet = wb.sheets[sn.params]
         df = sheet[ca.prepreg_cell].options(pd.DataFrame).value
+
         self.FAW = df["FAW"][name]
         self.resin_rate = df["Resin Content"][name]
         self.FLt = df["FLt"][name]
