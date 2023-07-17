@@ -25,6 +25,7 @@ default_dy_cell = "C38"
 secondary_structure_cell = "Y4:Y13"
 plank_start_cell = "AH4"
 plank_end_cell = "AH5"
+weight_cell = "BH40"
 
 # .expand("down")
 stringer_cell = "AB4:AE4"

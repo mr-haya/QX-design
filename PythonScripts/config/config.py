@@ -25,7 +25,7 @@ COEF_INDEX = {
 START_INDEX = 11
 
 # LLTの変数
-LLT_SPAN_DIV = 10  # 翼弦長の分割数（偶数）
+LLT_SPAN_DIV = 120  # 翼弦長の分割数（偶数）
 LLT_DAMPING_FACTOR = 0.1  # 循環の更新に使う謎係数．収束は遅くなるが数学的に安定するらしい．
 LLT_ITERATION_MAX = 32767 - 1
 LLT_ERROR = 10 ^ (-5)  # 誤差

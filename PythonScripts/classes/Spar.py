@@ -23,10 +23,10 @@ class Spar:  # 任意位置での断面と各種剛性、強度を返す
         self.nu = self.laminate.nu_equiv
 
         # 初期化
-        self._zi = 0
-        self._xi = 0
-        self._zo = 0
-        self._xo = 0
+        self._zi = 10
+        self._xi = 10
+        self._zo = 10
+        self._xo = 10
         self._Ix = 0
         self._Iy = 0
         self._J = 0
@@ -39,9 +39,9 @@ class Spar:  # 任意位置での断面と各種剛性、強度を返す
     def slice_at(self, x):
         if x >= 0 and x <= self.length:
             self._zi = (self.zi_0 - self.taper_ratio * x) / 2
-            self._xi = zi * self.ellipticity
-            self._zo = zi + self.laminate.thickness
-            self._zo = xi + self.laminate.thickness_zenshu
+            self._xi = self._zi * self.ellipticity
+            self._zo = self._zi + self.laminate.thickness
+            self._zo = self._xi + self.laminate.thickness_zenshu
             (
                 self._Ix,
                 self._Iy,

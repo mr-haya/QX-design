@@ -20,7 +20,7 @@ class Rib:
         sht_wing = wb.sheets[sn.wing]
         sht_ov = wb.sheets[sn.overview]
 
-        # 平面形を読み込む
+        # 平面形読み込み
         self.planform = sht_wing.range(ca.planform_cell).value
         self.vertex_arr = [r[0] for r in self.planform]
         if self.y_abs > self.vertex_arr[-1]:
@@ -32,19 +32,25 @@ class Rib:
         self.center = self._center()
         self.airfoil = self._airfoil()
 
-        self.hac = sht_ov.range(ca.hac_cell).value  # 翼型の空力中心位置
+        # 空力中心位置読み込み
+        self.hac = sht_ov.range(ca.hac_cell).value
 
         # 初期化
+        self.dy = 0  # リブ間隔
         self.y_def = 0  # リブの変形後のy座標
         self.z_def = 0  # リブの変形後のz座標
-        self.phi = 0  # リブのねじれ角
-        self.theta = 0  # リブのたわみ角
+        self.deflection = 0  # リブのたわみ量
         self.setting_angle = self.setting_angle0
         self.dihedral_angle = self.dihedral_angle0
         self.alpha_induced = 0
         self.alpha_effective = 0
         self.wi = 0
         self.Re = 0
+        self.circulation = 0
+        self.circulation_old = 0
+
+        self.phi = 0  # リブのねじれ角
+        self.theta = 0  # リブのたわみ角
 
         self._a0 = 0
         self._a1 = 0
@@ -77,12 +83,13 @@ class Rib:
     def Cm_cg(self):
         return self.Cm_ac + self.CL * (self.center - self.hac)
 
-    def dy(self, dy):  # 翼素投影面積
-        self.cdy = self.chord * self.dy * np.cos(np.rad * self.dihedral_angle)
+    @property
+    def cdy(self):  # 翼素投影面積
+        return self.chord * self.dy * np.cos(np.radians(self.dihedral_angle))
 
     @property
     def dynamic_pressure(self):
-        return 0.5 * state.rho * (state.Vair - np.rad * state.r * self.y_def) ** 2
+        return 0.5 * state.rho * (state.Vair - np.radians(state.r * self.y_def)) ** 2
 
     @property
     def dL(self):
@@ -110,8 +117,8 @@ class Rib:
             self.dynamic_pressure
             * self.cdy
             * (
-                self.CL * np.cos(np.rad * self.alpha_x)
-                - self.Cdp * np.sin(np.rad * self.alpha_x)
+                self.CL * np.cos(np.radians(self.alpha_x))
+                - self.Cdp * np.sin(np.radians(self.alpha_x))
             )
         )
 
@@ -121,8 +128,8 @@ class Rib:
             self.dynamic_pressure
             * self.cdy
             * (
-                -self.CL * np.sin(np.rad * self.alpha_x)
-                + self.Cdp * np.cos(np.rad * self.alpha_x)
+                -self.CL * np.sin(np.radians(self.alpha_x))
+                + self.Cdp * np.cos(np.radians(self.alpha_x))
             )
         )
 
@@ -150,7 +157,7 @@ class Rib:
 
     def _dihedral_angle0(self):
         dihedral_angle_arr = [r[3] for r in self.planform]
-        return dihedral_angle_arr[self.taper_section]
+        return np.sign(self.y) * dihedral_angle_arr[self.taper_section]
 
     def _center(self):
         center_arr = [r[4] for r in self.planform]
