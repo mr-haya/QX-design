@@ -34,7 +34,7 @@ def main():
     # 迎角範囲とそれに対応するCL, CD, Cmc/4の値を提供する必要があります。
     # 以下は仮のデータです。
     dev = 100
-    alpha = np.linspace(-10, 10, dev)  # 迎角
+    alpha = np.linspace(-5, 6, dev)  # 迎角
     Re = np.full(dev, 1e6)  # レイノルズ数
     array = np.array([[alpha[i], Re[i]] for i in range(len(alpha))])
     CL = np.array(foil.coefs["CL"](array))  # CLの値
