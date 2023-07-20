@@ -29,12 +29,12 @@ def main():
     #     for i in range(len(wing.panels))
     # ]
     # print(alRe)
-    foil = Airfoil("QX0023")
+    foil = Airfoil("NACA 0012")
 
     # 迎角範囲とそれに対応するCL, CD, Cmc/4の値を提供する必要があります。
     # 以下は仮のデータです。
     dev = 100
-    alpha = np.linspace(-5, 6, dev)  # 迎角
+    alpha = np.linspace(-4, 0, dev)  # 迎角
     Re = np.full(dev, 1e6)  # レイノルズ数
     array = np.array([[alpha[i], Re[i]] for i in range(len(alpha))])
     CL = np.array(foil.coefs["CL"](array))  # CLの値
@@ -50,8 +50,12 @@ def main():
     # Cm0（前縁まわりのピッチングモーメント係数）を計算
     Cm0 = -0.25 * Cn + Cmc_4
 
+    y = Cn * -0.25
+
     # Cm0とCnの散布図を作成
     plt.scatter(Cn, Cm0)
+
+    plt.plot(Cn, y, "g")
 
     # # 近似直線をフィット
     slope, intercept, r_value, p_value, std_err = linregress(Cn, Cm0)
