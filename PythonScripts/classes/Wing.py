@@ -1,3 +1,6 @@
+"""
+翼のクラス
+"""
 import os
 import xlwings as xw
 import numpy as np
@@ -12,9 +15,6 @@ import config.config as cf
 from .State import state
 from .Rib import Rib
 from .Spar import WingSpar
-
-rad = np.pi / 180  # conversion factor from degrees to radians
-deg = 180 / np.pi  # conversion factor from radians to degrees
 
 
 class Wing:
@@ -38,7 +38,7 @@ class Wing:
                 / 2
             )
 
-        # 二次構造を読み込む
+        # 二次構造
 
     def llt(self):
         # 揚力線理論
@@ -68,12 +68,11 @@ class Wing:
                 -self.b / 2 + self.ds, self.b / 2 - self.ds, self.span_div
             )
         ]
+        # 翼素重量
         self.dW = [
             self.weight * (self.panels[i].chord * self.dy / self.S_planform)
             for i in range(self.span_div)
         ]
-
-        # # 境界生成
 
         # 初期化
         self.yp = np.zeros((self.span_div, self.span_div))
@@ -128,6 +127,7 @@ class Wing:
             self._calc_force()
             self._calc_moment()
             self._calc_deflection()
+
             if self.iteration > 0:
                 error = abs((self.Lift - self.Lift_old) / self.Lift_old)
                 print(self.Lift, error)

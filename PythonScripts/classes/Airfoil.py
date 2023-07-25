@@ -5,10 +5,12 @@ Attributes:
     name (str): 翼型名
     dat (np.array): 翼型座標datデータ
     geometry (function): 翼型の上半分を左右反転させたdatデータをスプライン曲線で補間した関数。これで翼型の任意xでのy座標を、定義域を-1~1として.geometry([x])で取得できる。
-    coefs (dict): XFLR5で出力したtxtデータから補間した翼型の空力係数モデル。あるRe、alphaにおけるCLは.coefs["CL"]([alpha, Re])[0]で取得できる。
-    cl (function): 揚力係数補間関数
-    cd (function): 抗力係数補間関数
-    cm (function): モーメント係数補間関数
+    coefs (dict): XFLR5で出力したtxtデータから補間した翼型の空力係数モデル。あるRe、alphaにおけるCLは.coefs["CL"]([alpha, Re])[0]で取得できる。配列で取得するには、
+                        alpha = np.linspace(-10, 20, 100)  # 迎角
+                        Re = np.linspace(1e6, 1e5, 100)  # レイノルズ数
+                        X1, Y1 = np.meshgrid(alpha, Re, indexing="ij")
+                        CL = np.array(foil.coefs["CL"]((X1, Y1)))
+                    のようにする。
     
     
 Methods:
@@ -32,24 +34,33 @@ import config.config as cf
 
 class Airfoil:
     def __init__(self, foilname):
+        self.name = foilname
+
+        # フォルダのパスを取得
+        self.path = os.path.join(os.path.dirname(__file__), cf.AIRFOIL_PATH, self.name)
+
+        # datデータを取得
+        self.dat = np.loadtxt(
+            fname=os.path.join(self.path, self.name + ".dat"),
+            dtype="float",
+            skiprows=1,
+        )
+        # datデータをxが-1~1になるよう正規化
+        self.normalized_dat = self._normalize_dat()
+
         # エクセルシートを取得
         wb = xw.Book.caller()
         sheet = wb.sheets[sn.foil]
 
         # 解析範囲を読み込む
-        alpha_min = sheet.range(ca.alpha_min_cell).value
-        alpha_max = sheet.range(ca.alpha_max_cell).value
-        alpha_step = sheet.range(ca.alpha_step_cell).value
-        Re_min = sheet.range(ca.Re_min_cell).value
-        Re_max = sheet.range(ca.Re_max_cell).value
-        Re_step = sheet.range(ca.Re_step_cell).value
-        self.coefs = coefs_model(
-            foilname, alpha_min, alpha_max, alpha_step, Re_min, Re_max, Re_step
-        )
-
-        self.name = foilname
-        self.dat = fetch_dat(foilname)
-        self.normalized_dat = normalize_dat(self.dat)
+        self.alpha_min = sheet.range(ca.alpha_min_cell).value
+        self.alpha_max = sheet.range(ca.alpha_max_cell).value
+        self.alpha_step = sheet.range(ca.alpha_step_cell).value
+        self.Re_min = sheet.range(ca.Re_min_cell).value
+        self.Re_max = sheet.range(ca.Re_max_cell).value
+        self.Re_step = sheet.range(ca.Re_step_cell).value
+        self.xflr5 = self._xflr5()
+        self.coefs = self._coefs()
         self.geometry = interpolate.interp1d(
             self.normalized_dat[:, 0],
             self.normalized_dat[:, 1],
@@ -169,11 +180,106 @@ class Airfoil:
             )
         return perimeter
 
-    def show_l_d(self):
-        l_d = self.coefs("CL") / self.coefs("CD")
-        X1, Y1 = np.meshgrid(l_d.index, l_d.columns, indexing="ij")
-        cf.show_data((X1, Y1, l_d.values))
-        plt.show()
+    # datデータをxが-1~1になるよう正規化
+    def _normalize_dat(self):
+        # y座標が初めて負になるインデックスを取得
+        first_negative_y_indices = np.where(self.dat[:, 1] < 0)[0][0]
+
+        # 上側の点データを取得
+        upper_side_data = self.dat[:first_negative_y_indices].copy()
+
+        # x座標を左右反転
+        upper_side_data[:, 0] = -upper_side_data[:, 0]
+
+        x = np.concatenate(
+            [upper_side_data[:, 0], self.dat[first_negative_y_indices:][:, 0]]
+        )
+        y = np.concatenate(
+            [upper_side_data[:, 1], self.dat[first_negative_y_indices:][:, 1]]
+        )
+        return np.array([x, y]).T
+
+    def _coefs(self):
+        coefs_model = {}
+        for i, coef_name in enumerate(cf.COEF_INDEX.keys()):
+            # スライスを取り出し、DataFrameに変換
+            df = pd.DataFrame(
+                self.xflr5[i],
+                index=self.alpha_list,
+                columns=self.Re_list,
+                dtype="float",
+            )
+
+            # 欠損値を線形補完
+            df = df.interpolate(method="linear", limit_direction="both")
+
+            # 補間関数を作成
+            df_interp = interpolate.RegularGridInterpolator(
+                (df.index, df.columns),
+                df.values,
+                method="linear",
+                bounds_error=False,
+                fill_value=None,
+            )
+
+            # 辞書に追加
+            coefs_model[coef_name] = df_interp
+
+        return coefs_model
+
+    def alpha_index(self, alpha):
+        return round((alpha - self.alpha_min) / self.alpha_step)
+
+    def Re_index(self, Re):
+        return round((Re - self.Re_min) / self.Re_step)
+
+    # xflr5の解析結果を取得[cf.COEF_INDEX["係数"], α, Re]
+    def _xflr5(self):
+        foil_name = str(self.name)
+
+        # レイノルズ数と迎角のリストを生成
+        self.alpha_list = np.around(
+            np.arange(
+                self.alpha_min, self.alpha_max + self.alpha_step, self.alpha_step
+            ),
+            decimals=1,
+        )
+        self.Re_list = np.arange(self.Re_min, self.Re_max + self.Re_step, self.Re_step)
+        alpha_num = len(self.alpha_list)
+        Re_num = len(self.Re_list)
+
+        # データを格納するためのリスト[係数, α, Re]
+        output = np.nan * np.ones((len(cf.COEF_INDEX), alpha_num, Re_num))
+
+        # データを読み込む
+        for i in range(Re_num):
+            file_name = (
+                foil_name
+                + "_T1_Re"
+                + "{:.3f}".format((self.Re_min + self.Re_step * i) / 1000000)
+                + "_M0.00_N9.0.txt"
+            )
+            file_path = os.path.join(self.path, file_name)
+
+            # テキストファイルの読み込みとデータの抽出
+            with open(file_path, "r") as file:
+                lines = file.readlines()
+                for line in lines[cf.START_INDEX :]:
+                    values = line.strip().split()
+
+                    # 空白の場合はスキップ
+                    if values == []:
+                        continue
+
+                    # 値が存在する場合はリストに格納
+                    alpha_in_line = float(values[0])
+                    if alpha_in_line in self.alpha_list:
+                        for j, coef_index in enumerate(cf.COEF_INDEX.values()):
+                            extracted_value = float(values[coef_index])
+                            output[
+                                j, self.alpha_index(alpha_in_line), i
+                            ] = extracted_value
+        return output
 
 
 class MixedAirfoil(Airfoil):  # とりあえず幾何形状とCL,CD,Cmのみを混ぜる
@@ -253,116 +359,3 @@ class MixedAirfoil(Airfoil):  # とりあえず幾何形状とCL,CD,Cmのみを�
             self.airfoil1.Cm(alpha, Re) * (1 - self.ratio)
             + self.airfoil2.Cm(alpha, Re) * self.ratio
         )
-
-
-# 翼型名からフォルダのパスを作成
-def path(foil_name):
-    return os.path.join(os.path.dirname(__file__), cf.AIRFOIL_PATH, foil_name)
-
-
-# datファイルを取得
-def fetch_dat(foil_name):
-    file_name = os.path.join(path(foil_name), foil_name + ".dat")
-    return np.loadtxt(fname=file_name, dtype="float", skiprows=1)
-
-
-# datデータをxが-1~1になるよう正規化
-def normalize_dat(dat):
-    # y座標が初めて負になるインデックスを取得
-    first_negative_y_indices = np.where(dat[:, 1] < 0)[0][0]
-
-    # 上側の点データを取得
-    upper_side_data = dat[:first_negative_y_indices].copy()
-
-    # x座標を左右反転
-    upper_side_data[:, 0] = -upper_side_data[:, 0]
-
-    x = np.concatenate([upper_side_data[:, 0], dat[first_negative_y_indices:][:, 0]])
-    y = np.concatenate([upper_side_data[:, 1], dat[first_negative_y_indices:][:, 1]])
-    return np.array([x, y]).T
-
-
-def coefs_model(foilname, alpha_min, alpha_max, alpha_step, Re_min, Re_max, Re_step):
-    # レイノルズ数と迎角のリストを生成
-    alpha_list = np.around(
-        np.arange(alpha_min, alpha_max + alpha_step, alpha_step), decimals=1
-    )
-    Re_list = np.arange(Re_min, Re_max + Re_step, Re_step)
-
-    # XFLR5の解析結果を取得
-    coef_array = xflr5_output(foilname, alpha_list, Re_list)
-
-    # 別の格納用配列
-    coefs_model = {}
-
-    i = 0
-    for coef_name in cf.COEF_INDEX.keys():
-        # スライスを取り出し、それをDataFrameに変換
-        df = pd.DataFrame(
-            coef_array[i], index=alpha_list, columns=Re_list, dtype="float"
-        )
-
-        # 欠損値を線形補完
-        df = df.interpolate(method="linear", limit_direction="both")
-
-        # 補間関数を作成
-        df_interp = interpolate.RegularGridInterpolator(
-            (df.index, df.columns),
-            df.values,
-            method="linear",
-            bounds_error=False,
-            fill_value=None,
-        )
-
-        # 辞書に追加
-        coefs_model[coef_name] = df_interp
-        i += 1
-
-    return coefs_model
-
-
-# xflr5の解析結果を取得
-# coef_arrayは3次元行列で、[係数, α, Re]
-def xflr5_output(foil_name, alpha_list, Re_list):
-    foil_name = str(foil_name)
-    alpha_min = alpha_list[0]
-    alpha_step = alpha_list[1] - alpha_list[0]
-    alpha_num = len(alpha_list)
-
-    Re_min = Re_list[0]
-    Re_step = Re_list[1] - Re_list[0]
-    Re_num = len(Re_list)
-
-    # データを格納するためのリスト[係数, α, Re]
-    coef_array = np.nan * np.ones((len(cf.COEF_INDEX), alpha_num, Re_num))
-
-    # データを読み込む
-    for i in range(Re_num):
-        file_name = (
-            foil_name
-            + "_T1_Re"
-            + "{:.3f}".format((Re_min + Re_step * i) / 1000000)
-            + "_M0.00_N9.0.txt"
-        )
-        file_path = os.path.join(path(foil_name), file_name)
-
-        # テキストファイルの読み込みとデータの抽出
-        with open(file_path, "r") as file:
-            lines = file.readlines()
-            for line in lines[cf.START_INDEX :]:
-                values = line.strip().split()
-
-                # 空白の場合はスキップ
-                if values == []:
-                    continue
-
-                # 値が存在する場合はリストに格納
-                alpha_in_line = float(values[0])
-                if alpha_in_line in alpha_list:
-                    j = 0
-                    for coef_index in cf.COEF_INDEX.values():
-                        extracted_value = float(values[coef_index])
-                        alpha_index = round((alpha_in_line - alpha_min) / alpha_step)
-                        coef_array[j, alpha_index, i] = extracted_value
-                        j += 1
-    return coef_array
