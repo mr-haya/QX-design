@@ -30,7 +30,6 @@ def main():
     #     for i in range(len(wing.panels))
     # ]
     # print(alRe)
-<<<<<<< Updated upstream
     foil = Airfoil("NACA 0012")
 
     # 迎角範囲とそれに対応するCL, CD, Cmc/4の値を提供する必要があります。
@@ -69,8 +68,6 @@ def main():
 
     print(f"近似直線の傾き: {slope}")
     print(f"近似直線の切片: {intercept}")
-=======
->>>>>>> Stashed changes
 
 
 if __name__ == "__main__":

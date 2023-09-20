@@ -7,7 +7,7 @@ import os
 BOOK_NAME = "QX-XX.xlsm"
 
 # 翼型フォルダの相対パス
-AIRFOIL_PATH = os.path.join("..", "..", "Airfoils", "source")
+AIRFOIL_PATH = os.path.join("..", "Airfoils", "source")
 
 # Xflr5の出力txtファイル内での各係数の列番号
 COEF_INDEX = {
