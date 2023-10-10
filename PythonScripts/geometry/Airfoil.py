@@ -13,20 +13,11 @@ Methods:
     
 
 """
-import os
-import ezdxf
-from ezdxf import recover
-from ezdxf.addons.drawing import RenderContext, Frontend
-from ezdxf.addons.drawing.matplotlib import MatplotlibBackend
 import xlwings as xw
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from scipy import interpolate
-
-import config.cell_adress as ca
-import config.sheet_name as sn
-import config.config as cf
 
 
 class GeometricalAirfoil:

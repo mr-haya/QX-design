@@ -9,6 +9,8 @@ BOOK_NAME = "QX-XX.xlsm"
 # 翼型フォルダの相対パス
 AIRFOIL_PATH = os.path.join("..", "Airfoils", "source")
 
+OUTPUTS_PATH = os.path.join("..", "outputs")
+
 # Xflr5の出力txtファイル内での各係数の列番号
 COEF_INDEX = {
     "CL": 1,
@@ -41,6 +43,11 @@ import matplotlib.pyplot as plt
 def get_file_path():
     script_dir = os.path.dirname(os.path.abspath(__file__))
     return os.path.join(script_dir, "..", "..", BOOK_NAME)
+
+
+def get_outputs_path():
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    return os.path.join(script_dir, OUTPUTS_PATH)
 
 
 def wb():
