@@ -1,0 +1,2 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<svg baseProfile="full" height="100%" version="1.1" width="100%" xmlns="http://www.w3.org/2000/svg" xmlns:ev="http://www.w3.org/2001/xml-events" xmlns:xlink="http://www.w3.org/1999/xlink"><defs /><style type="text/css"><![CDATA[.red { fill:none; stroke:red; stroke-width:3px; } .black { fill:none; stroke:black; stroke-width:3px; }]]></style><line class="red" x1="0" x2="100" y1="0" y2="100" /><line class="red" x1="110" x2="200" y1="100" y2="100" /></svg>

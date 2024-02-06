@@ -401,6 +401,7 @@ def add_distanttiltline(msp, dat, center, distance, alpha):
     #     ]
     # )
     msp.add_line(start, end, dxfattribs={"layer": "SubLayer"})
+<<<<<<< Updated upstream
     
 def find_intersection_and_angle(curve, circle_center, radius):
     h, k = circle_center
@@ -427,6 +428,8 @@ def find_intersection_and_angle(curve, circle_center, radius):
             intersections.append((x_intersection, y_intersection, angle))
     
     return intersections
+=======
+>>>>>>> Stashed changes
 
 
 def add_TEarc(msp, chord, point_ref, radius):

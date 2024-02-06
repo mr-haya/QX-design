@@ -4,7 +4,6 @@ ezdxfというモジュールを使用
 https://ezdxf.readthedocs.io/en/stable/index.html
 """
 
-
 import os
 import xlwings as xw
 import numpy as np
@@ -14,37 +13,51 @@ from ezdxf.addons.drawing import RenderContext, Frontend
 from ezdxf.addons.drawing.matplotlib import MatplotlibBackend
 from ezdxf.enums import TextEntityAlignment
 
-import config.cell_adress as ca
-import config.sheet_name as sn
-import config.config as cf
-from geometry.Airfoil import GeometricalAirfoil
+import classes.Config as cf
+from classes.Geometry import GeometricalAirfoil
 
 
 def main():
     # エクセルのシートを取得
     wb = xw.Book.caller()
-    sht = wb.sheets[sn.wing]
+    sht = wb.sheets[cf.Wing.name]
 
     # シートから値を読み取る
-    foil1name_arr = sht.range(ca.foil1name).expand("down").value
-    foil1rate_arr = sht.range(ca.foil1rate).expand("down").value
-    foil2name_arr = sht.range(ca.foil2name).expand("down").value
-    foil2rate_arr = sht.range(ca.foil2rate).expand("down").value
-    chordlen_arr = sht.range(ca.chordlen).expand("down").value
-    taper_arr = sht.range(ca.taper).expand("down").value
-    spar_arr = sht.range(ca.spar).expand("down").value
-    ishalf_arr = [item == "half" for item in sht.range(ca.ishalf).expand("down").value]
-    diam_z_arr = sht.range(ca.diam_z).expand("down").value
-    diam_x_arr = sht.range(ca.diam_x).expand("down").value
-    spar_position_arr = sht.range(ca.spar_position).expand("down").value
-    alpha_rib_arr = sht.range(ca.alpha_rib).expand("down").value
+    foil1name_arr = sht.range(cf.Wing.foil1name).expand("down").value
+    foil1rate_arr = sht.range(cf.Wing.foil1rate).expand("down").value
+    foil2name_arr = sht.range(cf.Wing.foil2name).expand("down").value
+    foil2rate_arr = sht.range(cf.Wing.foil2rate).expand("down").value
+    chordlen_arr = sht.range(cf.Wing.chordlen).expand("down").value
+    taper_arr = sht.range(cf.Wing.taper).expand("down").value
+    spar_arr = sht.range(cf.Wing.spar).expand("down").value
+    ishalf_arr = [
+        item == "half" for item in sht.range(cf.Wing.ishalf).expand("down").value
+    ]
+    diam_z_arr = sht.range(cf.Wing.diam_z).expand("down").value
+    diam_x_arr = sht.range(cf.Wing.diam_x).expand("down").value
+    spar_position_arr = sht.range(cf.Wing.spar_position).expand("down").value
+    alpha_rib_arr = sht.range(cf.Wing.alpha_rib).expand("down").value
+
+    stringer_arr = sht.range(cf.Wing.stringer).expand("down").value
+
+    plank_thickness = sht.range(cf.Wing.plank_thickness_cell).value
+    plank_start = sht.range(cf.Wing.plank_start_cell).value
+    plank_end = sht.range(cf.Wing.plank_end_cell).value
+    halfline_start = sht.range(cf.Wing.halfline_start_cell).value
+    halfline_end = sht.range(cf.Wing.halfline_end_cell).value
+    ribzai_thickness = sht.range(cf.Wing.ribzai_thickness_cell).value
+    ribset_line = np.array(sht.range(cf.Wing.ribset_line).value)
+    print(np.ravel(ribset_line[:, 1]))
+
+    total_rib = len(foil1name_arr)
 
     # 必要なdatファイルを呼び出して格納
     dat_dict = {}
+    unique_foilname = np.unique(np.concatenate((foil1name_arr, foil2name_arr)))
 
-    for foilname in ["rev_root_140"]:
+    for foilname in unique_foilname:
         # フォルダのパスを取得
-        foilpath = os.path.join(os.path.dirname(__file__), cf.AIRFOIL_PATH, foilname)
+        foilpath = os.path.join(cf.Settings.AIRFOIL_PATH, foilname)
 
         # datデータを取得
         dat = np.loadtxt(
@@ -104,20 +117,24 @@ def main():
     )
     point_ref_count = 0
 
-    for id in range(45, 69 + 1):  # リブ番号の範囲を指定
+    for id in range(1, total_rib):  # リブ番号の範囲を指定
         chord = chordlen_arr[id]
         taper = taper_arr[id]
+        spar = spar_arr[id]
+        is_half = ishalf_arr[id]
         diam_z = diam_z_arr[id]
         diam_x = diam_x_arr[id]
         spar_position = spar_position_arr[id]
+        foil1name = foil1name_arr[id]
+        foil1rate = foil1rate_arr[id]
+        foil2name = foil2name_arr[id]
+        foil2rate = foil2rate_arr[id]
         alpha_rib = alpha_rib_arr[id]
-        point_ref = np.array([-spar_position * chord, -point_ref_count * 150])
-        spar = spar_arr[id]
-        is_half = ishalf_arr[id]  # ((-1) ** id - 1) / 2
+        point_ref = np.array([-spar_position * chord, -point_ref_count * 200])
         point_ref_count += 1
 
         # 翼型のdatデータを取得
-        dat_raw = dat_dict["rev_root_140"]
+        dat_raw = dat_dict[foil1name] * foil1rate + dat_dict[foil2name] * foil2rate
         # 幾何値参照用オブジェクトを作成
         geo = GeometricalAirfoil(dat_raw, chord_ref=chord)
         # 外形リブを描写
@@ -128,14 +145,16 @@ def main():
             dxfattribs={"layer": "RefFoilLayer"},
         )
 
-        offset_arr = np.array([[-0.75, 0.25, 2]])
+        offset_arr = np.array([[plank_start, plank_end, plank_thickness]])
         if is_half:
-            offset_base = 0
-            half_x_start = -0.75 * geo.chord_ref
-            half_x_end = 0.4 * geo.chord_ref
+            offset_base = (
+                0  # プランク以外の部分でのオフセット値（基本的にリブ材の厚み）
+            )
+            half_x_start = halfline_start * geo.chord_ref
+            half_x_end = halfline_end * geo.chord_ref
             half_start = (
                 np.array([abs(half_x_start), geo.y(half_x_start)])
-                + geo.nvec(half_x_start) * 2
+                + geo.nvec(half_x_start) * plank_thickness
             )
             half_end = np.array([abs(half_x_end), geo.y(half_x_end)])
             msp.add_line(
@@ -144,8 +163,7 @@ def main():
                 dxfattribs={"layer": "FoilLayer"},
             )
         else:
-            # オフセット配列の定義 []
-            offset_base = 0.45
+            offset_base = ribzai_thickness
         # リブオフセット
         dat_out = offset_foil(geo, offset_arr, offset_base)
         # リブ描写
@@ -156,32 +174,40 @@ def main():
             dxfattribs={"layer": "FoilLayer"},
         )
         # ストリンガー用の長方形を作図
-        add_tangedsquare(msp, geo, point_ref, 2, -0.70, 4, 4)
-        add_tangedsquare(msp, geo, point_ref, 2, -0.25, 4, 4)
-        add_tangedsquare(msp, geo, point_ref, 2, -0.1, 4, 4)
-        add_tangedsquare(msp, geo, point_ref, 2, -0.01, 2, 5)
-        add_tangedsquare(msp, geo, point_ref, 2, 0.005, 2, 5)
-        add_tangedsquare(msp, geo, point_ref, 2, 0.2, 4, 4)
+        for stringer in stringer_arr:
+            add_tangedsquare(
+                msp,
+                geo,
+                point_ref,
+                plank_thickness,
+                stringer[0],
+                stringer[1],
+                stringer[2],
+            )
         # コードラインを追加
         msp.add_line(
             np.array([0, 0]) + point_ref,
             np.array([chord, 0]) + point_ref,
-            dxfattribs={"layer": "SubLayer", "linetype": "CENTER"},
+            dxfattribs={"layer": "SubLayer"},
         )
         # 桁の十字線追加
         spar_x = spar_position * chord
         spar_center = np.array([abs(spar_x), geo.camber(spar_x)]) + point_ref
         add_cross(msp, spar_center, diam_x, diam_z, alpha_rib)
+        # 桁穴を追加
+        # msp.add_ellipse(
+        #     (10, 10),
+        #     major_axis=(5, 0),
+        #     ratio=0.5,
+        #     start_param=0,
+        #     end_param=math.pi,
+        #     dxfattribs=attribs,
+        # )
         # ダミーラインを作図
-        dummy_center = spar_center - np.array([0, geo.thickness(spar_x) * 0.2])
+        dummy_center = spar_center  # - np.array([0, geo.thickness(spar_x) * 0.2])
         add_distanttiltline(
             msp, geo.dat_ref + point_ref, dummy_center, 0, 90 + alpha_rib
         )
-        # dummy_start = dummy_center + np.array([1, np.tan(np.radians(alpha_rib))]) * (
-        #     chord * 0.9 - spar_x
-        # )
-        # dummy_end = dummy_center - np.array([1, np.tan(np.radians(alpha_rib))]) * spar_x
-        # msp.add_line(dummy_start, dummy_end, dxfattribs={"layer": "SubLayer"})
 
         # 円弧を追加
         add_TEarc(msp, chord, point_ref, 20)
@@ -198,31 +224,49 @@ def main():
                 refline_offset,
                 alpha_rib,
             )
-        if spar == "2番":
-            setline1_offset = -150
-            setline2_offset = 200
-            add_distanttiltline(
-                msp, geo.dat_ref + point_ref, spar_center, setline1_offset, alpha_rib
-            )
-            add_distanttiltline(
-                msp, geo.dat_ref + point_ref, spar_center, setline2_offset, alpha_rib
-            )
+        if spar == "端リブ":
+            for distance in np.ravel(ribset_line):
+                add_distanttiltline(
+                    msp,
+                    geo.dat_ref + point_ref,
+                    spar_center,
+                    distance,
+                    alpha_rib,
+                )
+        elif spar == "1番":
+            for distance in np.ravel(ribset_line[:, 0]):
+                add_distanttiltline(
+                    msp,
+                    geo.dat_ref + point_ref,
+                    spar_center,
+                    distance,
+                    alpha_rib,
+                )
+        elif spar == "2番":
+            for distance in np.ravel(ribset_line[:, 1]):
+                add_distanttiltline(
+                    msp,
+                    geo.dat_ref + point_ref,
+                    spar_center,
+                    distance,
+                    alpha_rib,
+                )
         elif spar == "3番":
-            setline1_offset = -100
-            setline2_offset = 150
-            add_distanttiltline(
-                msp, geo.dat_ref + point_ref, spar_center, setline1_offset, alpha_rib
-            )
-            add_distanttiltline(
-                msp, geo.dat_ref + point_ref, spar_center, setline2_offset, alpha_rib
-            )
+            for distance in np.ravel(ribset_line[:, 2]):
+                add_distanttiltline(
+                    msp,
+                    geo.dat_ref + point_ref,
+                    spar_center,
+                    distance,
+                    alpha_rib,
+                )
 
         # テキストを作成
         label_location = np.array([0.1 * chord, geo.camber(-0.1 * chord)]) + point_ref
         if is_half:
-            label_text = str(id) + " half"
+            label_text = str(id) + " H"
         else:
-            label_text = str(id) + " full"
+            label_text = str(id) + " F"
         if taper == "基準":
             label_text = label_text + " ref"
         if spar == "端リブ":
@@ -260,7 +304,8 @@ def main():
         )
 
     # dxfファイルに保存
-    file_name = cf.get_outputs_path() + "/master/rib_master_spar3_230930" + ".dxf"
+    # file_name = cf.Settings.OUTPUTS_PATH + "\\master\\rib_master_spar3_230930" + ".dxf"
+    file_name = r"C:\Users\soyha\OneDrive - Kyushu University\AircraftDesign\QX-design\Outputs\master\rib_master_qx24_240201.dxf"
     doc.saveas(file_name)
 
     # メッセージを表示して終了
@@ -415,6 +460,6 @@ def add_TEarc(msp, chord, point_ref, radius):
 
 
 if __name__ == "__main__":
-    file_path = cf.get_file_path()
+    file_path = cf.Settings.BOOK_PATH
     xw.Book(file_path).set_mock_caller()
     main()

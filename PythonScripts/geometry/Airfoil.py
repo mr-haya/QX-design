@@ -5,7 +5,11 @@ Attributes:
     name (str): 翼型名
     dat (np.array): 翼型座標datデータ
     geometry (function): 翼型の上半分を左右反転させたdatデータをスプライン曲線で補間した関数。これで翼型の任意xでのy座標を、定義域を-1~1として.geometry([x])で取得できる。
+<<<<<<< Updated upstream
 
+=======
+    
+>>>>>>> Stashed changes
     
 Methods:
     thickness(x): 任意xにおける翼厚を返す
