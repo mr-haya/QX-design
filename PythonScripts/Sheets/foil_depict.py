@@ -47,7 +47,6 @@ def main():
     halfline_end = sht.range(cf.Wing.halfline_end_cell).value
     ribzai_thickness = sht.range(cf.Wing.ribzai_thickness_cell).value
     ribset_line = np.array(sht.range(cf.Wing.ribset_line).value)
-    print(np.ravel(ribset_line[:, 1]))
 
     total_rib = len(foil1name_arr)
 
@@ -224,16 +223,16 @@ def main():
                 refline_offset,
                 alpha_rib,
             )
-        if spar == "端リブ":
-            for distance in np.ravel(ribset_line):
-                add_distanttiltline(
-                    msp,
-                    geo.dat_ref + point_ref,
-                    spar_center,
-                    distance,
-                    alpha_rib,
-                )
-        elif spar == "1番":
+        # if spar == "端リブ":
+        #     for distance in np.ravel(ribset_line):
+        #         add_distanttiltline(
+        #             msp,
+        #             geo.dat_ref + point_ref,
+        #             spar_center,
+        #             distance,
+        #             alpha_rib,
+        #         )
+        if spar == "1番":
             for distance in np.ravel(ribset_line[:, 0]):
                 add_distanttiltline(
                     msp,
@@ -305,7 +304,7 @@ def main():
 
     # dxfファイルに保存
     # file_name = cf.Settings.OUTPUTS_PATH + "\\master\\rib_master_spar3_230930" + ".dxf"
-    file_name = r"C:\Users\soyha\OneDrive - Kyushu University\AircraftDesign\QX-design\Outputs\master\rib_master_qx24_240201.dxf"
+    file_name = r"C:\Users\Riko Shirahase\QX-24_design\rib_master\rib_0206.dxf"
     doc.saveas(file_name)
 
     # メッセージを表示して終了
