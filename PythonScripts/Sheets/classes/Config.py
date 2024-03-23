@@ -12,9 +12,13 @@ import matplotlib.pyplot as plt
 class Settings:
     # ファイルパス
     script_dir = os.path.dirname(os.path.abspath(__file__))
-    BOOK_PATH = os.path.join(script_dir, "..", "..", "..", "QX-XX.xlsm")  # 直接実行する場合に必要
+    BOOK_PATH = os.path.join(
+        script_dir, "..", "..", "..", "QX-XX.xlsm"
+    )  # 直接実行する場合に必要
     AIRFOIL_PATH = os.path.join(script_dir, "..", "..", "..", "Airfoils", "source")
-    OUTPUTS_PATH = os.path.join(script_dir, "..", "..", "..", "Outputs")  # 図面などの出力先
+    OUTPUTS_PATH = os.path.join(
+        script_dir, "..", "..", "..", "Outputs"
+    )  # 図面などの出力先
 
     # Xflr5
     XFLR5_COEF_INDEX = {  # 出力txtファイル内での各係数の列番号
@@ -32,7 +36,9 @@ class Settings:
 
     # LLTの変数
     LLT_SPAN_DIV = 120  # 翼弦長の分割数（偶数）
-    LLT_DAMPING_FACTOR = 0.1  # 循環の更新に使う謎係数．収束は遅くなるが数学的に安定するらしい．
+    LLT_DAMPING_FACTOR = (
+        0.1  # 循環の更新に使う謎係数．収束は遅くなるが数学的に安定するらしい．
+    )
     LLT_ITERATION_MAX = 32767 - 1
     LLT_ERROR = 10 ^ (-5)  # 誤差
     LLT_RE_MAX = 1000000
@@ -69,22 +75,20 @@ class weight:
 class Wing:
     # -------------------------- 主翼 ------------------------- ##
     name = "主翼（空力）"
-    planform_cell = "M6:S13"
-    n_cell = "C43"
-    first_y_cell = "C44"
-    default_dy_cell = "C45"
-    secondary_structure_cell = "X4:X13"
-    plank_thickness_cell = "U5"
-    ribzai_thickness_cell = "U6"
-    plank_start_cell = "AD4"
-    plank_end_cell = "AD5"
-    halfline_start_cell = "AD8"
-    halfline_end_cell = "AD9"
-    weight_cell = "BH40"
-    ribset_line = "AD12:AF13"
+    planform = "H6:M13"
+    ribzai_thickness = "AG5"
+    plank_thickness = "AG7"
+    plank_start = "AG11"
+    plank_end = "AH11"
+    halfline_start = "AG12"
+    halfline_end = "AH12"
+    hole_margin = "AK11"
+    refline_offset = "AK12"
+    weight = "BH40"
+    ribset_line = "AO4:AQ5"
 
     # .expand("down")
-    stringer = "Y4:AA4"
+    stringer = "AB4:AD4"
     spec_rib_cell = "E44:G44"
     margin_rib_cell = "K44"
     export_aero_cell = "L44:AB44"
