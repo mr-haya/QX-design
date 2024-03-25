@@ -82,10 +82,14 @@ class Wing:
     plank_end = "AH11"
     halfline_start = "AG12"
     halfline_end = "AH12"
-    hole_margin = "AK11"
-    refline_offset = "AK12"
+    balsatip_length = "AK4"
+    carbontip_length = "AK5"
+    koenzai_length = "AK6"
+    refline_offset = "AK11"
+    hole_margin = "AK12"
     weight = "BH40"
     ribset_line = "AO4:AQ5"
+    channel_distance = "AO7:AQ8"
 
     # .expand("down")
     stringer = "AB4:AD4"
@@ -101,11 +105,11 @@ class Wing:
     diam_z = "I51"
     diam_x = "J51"
     spar_position = "K51"
-    foil1name = "O51"
-    foil1rate = "P51"
-    foil2name = "Q51"
-    foil2rate = "R51"
-    alpha_rib = "W51"
+    foil1name = "AD51"
+    foil1rate = "AE51"
+    foil2name = "AF51"
+    foil2rate = "AG51"
+    alpha_rib = "AL51"
 
 
 class Tail:
