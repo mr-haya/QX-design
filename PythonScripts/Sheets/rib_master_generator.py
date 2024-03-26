@@ -19,8 +19,9 @@ from ezdxf.enums import TextEntityAlignment
 import classes.Config as cf
 from classes.Geometry import GeometricalAirfoil
 
-mode = "lasercut"  # "print", "lasercut", "jig"
+mode = "jig"  # "print", "lasercut", "jig"
 preview = True  # matplotlibでプレビューを表示するか
+all_at_once = preview  # 一つのファイルにまとめるか True or False
 
 protrude_length = 0.5  # 線引き線の飛び出し長さ
 
@@ -36,13 +37,11 @@ peephole_length = 10  # lasercutで線引き用に開ける四角穴の一辺長
 
 # 出力ファイル名
 current_time = datetime.now().strftime("%Y%m%d_%H%M%S")
-if mode == "print":  # or mode == "jig"
-    all_at_once = True  # 一つのファイルにまとめるか
+if all_at_once:
     file_name = os.path.join(
         cf.Settings.OUTPUTS_PATH, "master", f"rib_master_{mode}_{current_time}.dxf"
     )
 else:
-    all_at_once = False
     output_dir = os.path.join(
         cf.Settings.OUTPUTS_PATH, "master", f"rib_master_{mode}_{current_time}"
     )
@@ -203,7 +202,7 @@ def main():
 
         # 作図開始
 
-        if mode == "print" or "lasercut":
+        if mode == "print" or mode == "lasercut":
             # リブ
             msp.add_lwpolyline(
                 dat_out + point_ref,
@@ -438,8 +437,6 @@ def main():
                     ) + np.array([-channel_distances[j], spar_height])
 
                     if all_at_once:
-                        jig_points += np.array([channel_distances[j], -spar_height])
-                        peak_line += np.array([channel_distances[j], -spar_height])
                         add_line_inside_foil(
                             msp,
                             dat_out,
@@ -447,16 +444,22 @@ def main():
                             0,
                             point_ref,
                         )
+                        jig_points += np.array([channel_distances[j], -spar_height])
+                        peak_line += np.array([channel_distances[j], -spar_height])
+
+                        space_between = np.array([0, 0])
+
+                    space_between = np.array([(jig_width + 0.5) * j, 0])
 
                     msp.add_lwpolyline(
-                        jig_points + point_ref + np.array([(jig_width + 0.5) * j, 0]),
+                        jig_points + point_ref + space_between,
                         format="xy",
                         close=True,
                         dxfattribs={"layer": "Layer", "color": 1},
                     )
                     msp.add_line(
-                        peak_line[0] + point_ref + np.array([(jig_width + 0.5) * j, 0]),
-                        peak_line[1] + point_ref + np.array([(jig_width + 0.5) * j, 0]),
+                        peak_line[0] + point_ref + space_between,
+                        peak_line[1] + point_ref + space_between,
                         dxfattribs={"layer": "Layer", "color": 1},
                     )
 
@@ -467,10 +470,7 @@ def main():
                     text = num2coords("L") if j == 0 else num2coords("T")
 
                     msp.add_lwpolyline(
-                        text_height * text
-                        + text_location
-                        + point_ref
-                        + np.array([(jig_width + 0.5) * j, 0]),
+                        text_height * text + text_location + point_ref + space_between,
                         format="xy",
                         close=False,
                         dxfattribs={"layer": "Layer", "color": 1},
@@ -483,7 +483,7 @@ def main():
                             text_height * text
                             + text_location
                             + point_ref
-                            + np.array([(jig_width + 0.5) * j, 0]),
+                            + space_between,
                             format="xy",
                             close=False,
                             dxfattribs={"layer": "Layer", "color": 1},
