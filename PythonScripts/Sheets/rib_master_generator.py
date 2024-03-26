@@ -19,8 +19,8 @@ from ezdxf.enums import TextEntityAlignment
 import classes.Config as cf
 from classes.Geometry import GeometricalAirfoil
 
-mode = "jig"  # "print", "lasercut", "jig"
-preview = False  # matplotlibでプレビューを表示するか
+mode = "lasercut"  # "print", "lasercut", "jig"
+preview = True  # matplotlibでプレビューを表示するか
 
 protrude_length = 0.5  # 線引き線の飛び出し長さ
 
@@ -245,249 +245,249 @@ def main():
                     dxfattribs={"layer": "Layer"},
                 )
 
-        # if mode == "print":
-        #     # ダミーライン
-        #     add_line_inside_foil(
-        #         msp,
-        #         dat_out,
-        #         (0, 0),
-        #         90,
-        #         point_ref,
-        #     )
+        if mode == "print":
+            # ダミーライン
+            add_line_inside_foil(
+                msp,
+                dat_out,
+                (0, 0),
+                90,
+                point_ref,
+            )
 
-        #     if not is_half:
-        #         # 外形
-        #         rotated_outline = rotate_points(
-        #             geo.dat_ref - spar_center, (0, 0), alpha_rib
-        #         )
-        #         msp.add_lwpolyline(
-        #             rotated_outline + point_ref,
-        #             format="xy",
-        #             close=True,
-        #             dxfattribs={"layer": "Layer"},
-        #         )
+            if not is_half:
+                # 外形
+                rotated_outline = rotate_points(
+                    geo.dat_ref - spar_center, (0, 0), alpha_rib
+                )
+                msp.add_lwpolyline(
+                    rotated_outline + point_ref,
+                    format="xy",
+                    close=True,
+                    dxfattribs={"layer": "Layer"},
+                )
 
-        #         # コードライン
-        #         rotated_chordline = rotate_points(
-        #             np.array([[0, 0], [chord, 0]]) - spar_center, (0, 0), alpha_rib
-        #         )
-        #         msp.add_line(
-        #             rotated_chordline[0] + point_ref,
-        #             rotated_chordline[1] + point_ref,
-        #             dxfattribs={"layer": "Layer"},
-        #         )
+                # コードライン
+                rotated_chordline = rotate_points(
+                    np.array([[0, 0], [chord, 0]]) - spar_center, (0, 0), alpha_rib
+                )
+                msp.add_line(
+                    rotated_chordline[0] + point_ref,
+                    rotated_chordline[1] + point_ref,
+                    dxfattribs={"layer": "Layer"},
+                )
 
-        #     # 桁線
-        #     intersections_center = find_line_intersection(dat_out, (0, 0), 0)
-        #     msp.add_line(
-        #         intersections_center[0] + point_ref,
-        #         intersections_center[1] + point_ref,
-        #         dxfattribs={"layer": "Layer", "linetype": "CENTER"},
-        #     )
+            # 桁線
+            intersections_center = find_line_intersection(dat_out, (0, 0), 0)
+            msp.add_line(
+                intersections_center[0] + point_ref,
+                intersections_center[1] + point_ref,
+                dxfattribs={"layer": "Layer", "linetype": "CENTER"},
+            )
 
-        #     # オフセット線
-        #     if taper == "基準":
-        #         intersections = find_line_intersection(dat_out, (refline_offset, 0), 0)
-        #         msp.add_line(
-        #             intersections[0] + point_ref,
-        #             intersections[1] + point_ref,
-        #             dxfattribs={"layer": "Layer", "linetype": "CENTER"},
-        #         )
-        #     if do_ribset:
-        #         for offset in ribset_line_offsets:
-        #             add_line_inside_foil(
-        #                 msp,
-        #                 dat_out,
-        #                 (offset, 0),
-        #                 0,
-        #                 point_ref,
-        #             )
+            # オフセット線
+            if taper == "基準":
+                intersections = find_line_intersection(dat_out, (refline_offset, 0), 0)
+                msp.add_line(
+                    intersections[0] + point_ref,
+                    intersections[1] + point_ref,
+                    dxfattribs={"layer": "Layer", "linetype": "CENTER"},
+                )
+            if do_ribset:
+                for offset in ribset_line_offsets:
+                    add_line_inside_foil(
+                        msp,
+                        dat_out,
+                        (offset, 0),
+                        0,
+                        point_ref,
+                    )
 
-        #     # テキスト
-        #     label_location = np.array([0.1 * chord - spar_x, 0]) + point_ref
-        #     label_text = str(id)
-        #     if taper == "基準":
-        #         label_text = label_text + " ref"
-        #     if spar == "端リブ":
-        #         label_text = label_text + " end"
-        #     label_height = 15
-        #     info_text = str(np.round(chord * 1e3) / 1e3) + "mm"
-        #     info_height = 10
-        #     msp.add_text(
-        #         label_text,
-        #         height=label_height,
-        #         dxfattribs={
-        #             "layer": "Layer",
-        #         },
-        #     ).set_placement(label_location, align=TextEntityAlignment.BOTTOM_LEFT)
-        #     msp.add_text(
-        #         info_text,
-        #         height=info_height,
-        #         dxfattribs={
-        #             "layer": "Layer",
-        #         },
-        #     ).set_placement(
-        #         (label_location[0], label_location[1] - 5),
-        #         align=TextEntityAlignment.TOP_LEFT,
-        #     )
+            # テキスト
+            label_location = np.array([0.1 * chord - spar_x, 0]) + point_ref
+            label_text = str(id)
+            if taper == "基準":
+                label_text = label_text + " ref"
+            if spar == "端リブ":
+                label_text = label_text + " end"
+            label_height = 15
+            info_text = str(np.round(chord * 1e3) / 1e3) + "mm"
+            info_height = 10
+            msp.add_text(
+                label_text,
+                height=label_height,
+                dxfattribs={
+                    "layer": "Layer",
+                },
+            ).set_placement(label_location, align=TextEntityAlignment.BOTTOM_LEFT)
+            msp.add_text(
+                info_text,
+                height=info_height,
+                dxfattribs={
+                    "layer": "Layer",
+                },
+            ).set_placement(
+                (label_location[0], label_location[1] - 5),
+                align=TextEntityAlignment.TOP_LEFT,
+            )
 
-        # if mode == "lasercut":
-        #     # ダミーライン
-        #     add_line_inside_foil(
-        #         msp, dat_out, (0, 0), 90, point_ref, 2, 2, peephole=True
-        #     )
+        if mode == "lasercut":
+            # ダミーライン
+            add_line_inside_foil(
+                msp, dat_out, (0, 0), 90, point_ref, 2, 2, peephole=True
+            )
 
-        #     # コードライン
-        #     add_line_inside_foil(
-        #         msp,
-        #         dat_out,
-        #         rotate_points(np.array([0, -spar_center[1]]), (0, 0), alpha_rib),
-        #         90 - alpha_rib,
-        #         point_ref,
-        #         2,
-        #         2,
-        #     )
+            # コードライン
+            add_line_inside_foil(
+                msp,
+                dat_out,
+                rotate_points(np.array([0, -spar_center[1]]), (0, 0), alpha_rib),
+                90 - alpha_rib,
+                point_ref,
+                2,
+                2,
+            )
 
-        #     # 桁線
-        #     msp.add_line(
-        #         np.array([0, (diam_z + hole_margin) / 2]) + point_ref,
-        #         np.array([0, (diam_z + hole_margin) / 2 + protrude_length]) + point_ref,
-        #         dxfattribs={"layer": "Layer"},
-        #     )
-        #     msp.add_line(
-        #         np.array([0, -(diam_z + hole_margin) / 2]) + point_ref,
-        #         np.array([0, -(diam_z + hole_margin) / 2 - protrude_length])
-        #         + point_ref,
-        #         dxfattribs={"layer": "Layer"},
-        #     )
-        #     msp.add_line(
-        #         np.array([(diam_x + hole_margin) / 2, 0]) + point_ref,
-        #         np.array([(diam_x + hole_margin) / 2 + protrude_length, 0]) + point_ref,
-        #         dxfattribs={"layer": "Layer"},
-        #     )
-        #     msp.add_line(
-        #         np.array([-(diam_x + hole_margin) / 2, 0]) + point_ref,
-        #         np.array([-(diam_x + hole_margin) / 2 - protrude_length, 0])
-        #         + point_ref,
-        #         dxfattribs={"layer": "Layer"},
-        #     )
+            # 桁線
+            msp.add_line(
+                np.array([0, (diam_z + hole_margin) / 2]) + point_ref,
+                np.array([0, (diam_z + hole_margin) / 2 + protrude_length]) + point_ref,
+                dxfattribs={"layer": "Layer"},
+            )
+            msp.add_line(
+                np.array([0, -(diam_z + hole_margin) / 2]) + point_ref,
+                np.array([0, -(diam_z + hole_margin) / 2 - protrude_length])
+                + point_ref,
+                dxfattribs={"layer": "Layer"},
+            )
+            msp.add_line(
+                np.array([(diam_x + hole_margin) / 2, 0]) + point_ref,
+                np.array([(diam_x + hole_margin) / 2 + protrude_length, 0]) + point_ref,
+                dxfattribs={"layer": "Layer"},
+            )
+            msp.add_line(
+                np.array([-(diam_x + hole_margin) / 2, 0]) + point_ref,
+                np.array([-(diam_x + hole_margin) / 2 - protrude_length, 0])
+                + point_ref,
+                dxfattribs={"layer": "Layer"},
+            )
 
-        #     # オフセット線
-        #     if do_ribset:
-        #         for offset in ribset_line_offsets:
-        #             add_line_inside_foil(
-        #                 msp, dat_out, (offset, 0), 0, point_ref, 2, 2, peephole=True
-        #             )
+            # オフセット線
+            if do_ribset:
+                for offset in ribset_line_offsets:
+                    add_line_inside_foil(
+                        msp, dat_out, (offset, 0), 0, point_ref, 2, 2, peephole=True
+                    )
 
         if mode == "jig":
-            pass
-            # if all_at_once:
-            #     # リブ
-            #     msp.add_lwpolyline(
-            #         dat_out + point_ref,
-            #         format="xy",
-            #         close=True,
-            #         dxfattribs={"layer": "Layer"},
-            #     )
-            # if do_ribset:
-            #     for j, offset in enumerate(ribset_line_offsets):
-            #         dat_section = divide_dat(
-            #             dat_out,
-            #             offset - channel_width / 2,
-            #             offset + channel_width / 2,
-            #         )
-            #         if is_half and j == 1:
-            #             dat_section = np.array(
-            #                 [
-            #                     find_line_intersection(
-            #                         dat_out, (offset - channel_width / 2, 0), 0
-            #                     )[1],
-            #                     (
-            #                         find_line_intersection(
-            #                             dat_out, (offset + channel_width / 2, 0), 0
-            #                         )[1]
-            #                         if find_line_intersection(
-            #                             dat_out, (offset + channel_width / 2, 0), 0
-            #                         ).size
-            #                         != 0
-            #                         else dat_out[-1]
-            #                     ),
-            #                 ]
-            #             )
-            #         jig_points = np.vstack(
-            #             [
-            #                 [
-            #                     [-jig_width / 2, 0],
-            #                     [-jig_width / 2, jig_height],
-            #                 ],
-            #                 dat_section
-            #                 + np.array([-channel_distances[j], spar_height]),
-            #                 [
-            #                     [jig_width / 2, jig_height],
-            #                     [jig_width / 2, 0],
-            #                     [channel_width / 2 + torelance / 2, 0],
-            #                     [channel_width / 2 + torelance / 2, channel_height],
-            #                     [-channel_width / 2 - torelance / 2, channel_height],
-            #                     [-channel_width / 2 - torelance / 2, 0],
-            #                 ],
-            #             ]
-            #         )
-            #         intersection = find_line_intersection(dat_out, (offset, 0), 0)[1]
-            #         peak_line = np.array(
-            #             [intersection, intersection + np.array([0, -protrude_length])]
-            #         ) + np.array([-channel_distances[j], spar_height])
+            # pass
+            if all_at_once:
+                # リブ
+                msp.add_lwpolyline(
+                    dat_out + point_ref,
+                    format="xy",
+                    close=True,
+                    dxfattribs={"layer": "Layer"},
+                )
+            if do_ribset:
+                for j, offset in enumerate(ribset_line_offsets):
+                    dat_section = divide_dat(
+                        dat_out,
+                        offset - channel_width / 2,
+                        offset + channel_width / 2,
+                    )
+                    if is_half and j == 1:
+                        dat_section = np.array(
+                            [
+                                find_line_intersection(
+                                    dat_out, (offset - channel_width / 2, 0), 0
+                                )[1],
+                                (
+                                    find_line_intersection(
+                                        dat_out, (offset + channel_width / 2, 0), 0
+                                    )[1]
+                                    if find_line_intersection(
+                                        dat_out, (offset + channel_width / 2, 0), 0
+                                    ).size
+                                    != 0
+                                    else dat_out[-1]
+                                ),
+                            ]
+                        )
+                    jig_points = np.vstack(
+                        [
+                            [
+                                [-jig_width / 2, 0],
+                                [-jig_width / 2, jig_height],
+                            ],
+                            dat_section
+                            + np.array([-channel_distances[j], spar_height]),
+                            [
+                                [jig_width / 2, jig_height],
+                                [jig_width / 2, 0],
+                                [channel_width / 2 + torelance / 2, 0],
+                                [channel_width / 2 + torelance / 2, channel_height],
+                                [-channel_width / 2 - torelance / 2, channel_height],
+                                [-channel_width / 2 - torelance / 2, 0],
+                            ],
+                        ]
+                    )
+                    intersection = find_line_intersection(dat_out, (offset, 0), 0)[1]
+                    peak_line = np.array(
+                        [intersection, intersection + np.array([0, -protrude_length])]
+                    ) + np.array([-channel_distances[j], spar_height])
 
-            #         if all_at_once:
-            #             jig_points += np.array([channel_distances[j], -spar_height])
-            #             peak_line += np.array([channel_distances[j], -spar_height])
-            #             add_line_inside_foil(
-            #                 msp,
-            #                 dat_out,
-            #                 (offset, 0),
-            #                 0,
-            #                 point_ref,
-            #             )
+                    if all_at_once:
+                        jig_points += np.array([channel_distances[j], -spar_height])
+                        peak_line += np.array([channel_distances[j], -spar_height])
+                        add_line_inside_foil(
+                            msp,
+                            dat_out,
+                            (offset, 0),
+                            0,
+                            point_ref,
+                        )
 
-            #         msp.add_lwpolyline(
-            #             jig_points + point_ref + np.array([(jig_width + 0.5) * j, 0]),
-            #             format="xy",
-            #             close=True,
-            #             dxfattribs={"layer": "Layer", "color": 1},
-            #         )
-            #         msp.add_line(
-            #             peak_line[0] + point_ref + np.array([(jig_width + 0.5) * j, 0]),
-            #             peak_line[1] + point_ref + np.array([(jig_width + 0.5) * j, 0]),
-            #             dxfattribs={"layer": "Layer", "color": 1},
-            #         )
+                    msp.add_lwpolyline(
+                        jig_points + point_ref + np.array([(jig_width + 0.5) * j, 0]),
+                        format="xy",
+                        close=True,
+                        dxfattribs={"layer": "Layer", "color": 1},
+                    )
+                    msp.add_line(
+                        peak_line[0] + point_ref + np.array([(jig_width + 0.5) * j, 0]),
+                        peak_line[1] + point_ref + np.array([(jig_width + 0.5) * j, 0]),
+                        dxfattribs={"layer": "Layer", "color": 1},
+                    )
 
-            #         text_location = np.array([20.0, 45.0])
-            #         if all_at_once:
-            #             text_location += np.array([channel_distances[j], -spar_height])
-            #         text_height = 5
-            #         text = num2coords("L") if j == 0 else num2coords("T")
+                    text_location = np.array([20.0, 45.0])
+                    if all_at_once:
+                        text_location += np.array([channel_distances[j], -spar_height])
+                    text_height = 5
+                    text = num2coords("L") if j == 0 else num2coords("T")
 
-            #         msp.add_lwpolyline(
-            #             text_height * text
-            #             + text_location
-            #             + point_ref
-            #             + np.array([(jig_width + 0.5) * j, 0]),
-            #             format="xy",
-            #             close=False,
-            #             dxfattribs={"layer": "Layer", "color": 1},
-            #         )
+                    msp.add_lwpolyline(
+                        text_height * text
+                        + text_location
+                        + point_ref
+                        + np.array([(jig_width + 0.5) * j, 0]),
+                        format="xy",
+                        close=False,
+                        dxfattribs={"layer": "Layer", "color": 1},
+                    )
 
-            #         for digit in str(id):
-            #             text_location += np.array([7.5, 0])
-            #             text = num2coords(digit)
-            #             msp.add_lwpolyline(
-            #                 text_height * text
-            #                 + text_location
-            #                 + point_ref
-            #                 + np.array([(jig_width + 0.5) * j, 0]),
-            #                 format="xy",
-            #                 close=False,
-            #                 dxfattribs={"layer": "Layer", "color": 1},
-            #             )
+                    for digit in str(id):
+                        text_location += np.array([7.5, 0])
+                        text = num2coords(digit)
+                        msp.add_lwpolyline(
+                            text_height * text
+                            + text_location
+                            + point_ref
+                            + np.array([(jig_width + 0.5) * j, 0]),
+                            format="xy",
+                            close=False,
+                            dxfattribs={"layer": "Layer", "color": 1},
+                        )
 
         if not all_at_once:
             file_name = os.path.join(output_dir, f"rib_{id}.dxf")
