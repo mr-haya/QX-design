@@ -178,12 +178,6 @@ def main():
         # リブ描写
         add_polygon_with_lines(msp, dat_out + point_ref, close=True)
         # ストリンガー用の長方形を作図
-        # add_tangedsquare(msp, geo, point_ref, 2, -0.70, 4, 4)
-        # add_tangedsquare(msp, geo, point_ref, 2, -0.25, 4, 4)
-        # add_tangedsquare(msp, geo, point_ref, 2, -0.1, 4, 4)
-        # add_tangedsquare(msp, geo, point_ref, 2, -0.01, 2, 5)
-        # add_tangedsquare(msp, geo, point_ref, 2, 0.005, 2, 5)
-        # add_tangedsquare(msp, geo, point_ref, 2, 0.2, 4, 4)
         for stringer in stringer_arr:
             add_tangedsquare(
                 msp,
