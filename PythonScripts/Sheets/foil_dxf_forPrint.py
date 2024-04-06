@@ -53,9 +53,9 @@ def main():
 
     # 必要なdatファイルを呼び出して格納
     dat_dict = {}
-    unique_foilname = np.unique(np.concatenate((foil1name_arr, foil2name_arr)))
+    foilnames = np.unique(np.concatenate((foil1name_arr, foil2name_arr)))
 
-    for foilname in unique_foilname:
+    for foilname in foilnames:
         # フォルダのパスを取得
         foilpath = os.path.join(cf.Settings.AIRFOIL_PATH, foilname)
 
