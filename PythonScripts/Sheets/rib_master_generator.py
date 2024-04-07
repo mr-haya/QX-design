@@ -20,10 +20,10 @@ import classes.Config as cf
 from classes.Geometry import GeometricalAirfoil
 
 mode = "jig"  # "print", "lasercut", "jig"
-preview = True  # matplotlibでプレビューを表示するか
+preview = False  # matplotlibでプレビューを表示するか
 all_at_once = preview  # 一つのファイルにまとめるか True or False
 
-protrude_length = 0.5  # 線引き線の飛び出し長さ
+protrude_length = 1  # 線引き線の飛び出し長さ
 
 channel_width = 60  # チャンネル材の幅
 channel_height = 30  # チャンネル材の高さ
@@ -32,7 +32,7 @@ jig_width = 100  # ジグの幅
 jig_height = 45  # ジグの四角部分の高さ
 spar_height = 140  # リブ付時の桁中心のチャンネル材下部からの高さ
 
-peephole_length = 10  # lasercutで線引き用に開ける四角穴の一辺長さ（peephole: のぞき穴）
+peephole_length = 5  # lasercutで線引き用に開ける四角穴の一辺長さ（peephole: のぞき穴）
 
 
 # 出力ファイル名
@@ -151,7 +151,7 @@ def main():
                 },
             )
             if mode == "lasercut":
-                point_ref = np.array([spar_position * chord, 100])
+                point_ref = np.array([spar_position * chord+10, 200])
             elif mode == "jig":
                 point_ref = np.array([jig_width / 2, 0])
 
@@ -405,6 +405,13 @@ def main():
                 )
             if do_ribset:
                 for j, offset in enumerate(ribset_line_offsets):
+
+                    intersection = find_line_intersection(dat_out, (offset, 0), 0)
+                    if len(intersection) == 0:
+                        continue
+
+                    intersection = intersection[1]
+
                     dat_section = divide_dat(
                         dat_out,
                         offset - channel_width / 2,
@@ -446,7 +453,7 @@ def main():
                             ],
                         ]
                     )
-                    intersection = find_line_intersection(dat_out, (offset, 0), 0)[1]
+
                     peak_line = np.array(
                         [intersection, intersection + np.array([0, -protrude_length])]
                     ) + np.array([-channel_distances[j], spar_height])
@@ -516,6 +523,15 @@ def main():
         if not all_at_once:
             file_name = os.path.join(output_dir, f"rib_{id}.dxf")
             doc.saveas(file_name)
+            fig = plt.figure()
+            ax = fig.add_axes([0, 0, 1, 1])
+            ctx = RenderContext(doc)
+            out = MatplotlibBackend(ax)
+            Frontend(ctx, out).draw_layout(msp, finalize=True)
+            fig.savefig( os.path.join(output_dir, f"rib_{id}.png"))
+            plt.close()
+            
+
 
     if all_at_once:
         doc.saveas(file_name)
