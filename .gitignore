@@ -1,6 +1,6 @@
 ## Python.gitignore from line 6 to 168
 ## VisualStudio.gitignore from line 170 to 569
-
+/Outputs
 
 # ------------------------ Python.gitignore ------------------------ ##
 
