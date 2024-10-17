@@ -88,8 +88,8 @@ class Wing:
     refline_offset = "AK11"
     hole_margin = "AK12"
     weight = "BH40"
-    ribset_line = "AO4:AQ5"
-    channel_distance = "AO7:AQ8"
+    ribset_line = "AO4:AR5"
+    channel_distance = "AO7:AR8"
 
     # .expand("down")
     stringer = "AB4:AD4"

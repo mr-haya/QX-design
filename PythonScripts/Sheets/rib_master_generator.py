@@ -20,22 +20,26 @@ import classes.Config as cf
 from classes.Geometry import GeometricalAirfoil
 
 mode = "jig"  # "print", "lasercut", "jig"
-preview = False  # matplotlibでプレビューを表示するか
-all_at_once = preview  # 一つのファイルにまとめるか True or False
+# "print":紙で印刷する用 番号あり, "lasercut":レーザーカッター用 線の両端のみ描画, "jig":リブ付のジグ用
+preview = True  # matplotlibでプレビューを表示するか
+all_at_once = False  # 一つの図面、ファイルにまとめるか
 
 protrude_length = 1  # 線引き線の飛び出し長さ
 
+# "lasercut"の場合のパラメータ
+peephole_length = 10  # 線引き用に開ける四角穴の一辺長さ（peephole: のぞき穴）
+
+# "jig"の場合のパラメータ
 channel_width = 60  # チャンネル材の幅
 channel_height = 30  # チャンネル材の高さ
 torelance = 0.1  # チャンネル材とのはめあい交差
-jig_width = 100  # ジグの幅
+jig_width = 100  # ジグ全体の幅
 jig_height = 45  # ジグの四角部分の高さ
-spar_height = 140  # リブ付時の桁中心のチャンネル材下部からの高さ
+spar_height = 140  # リブ付時の桁中心とチャンネル材下部との高さ差
 
 peephole_length = 5  # lasercutで線引き用に開ける四角穴の一辺長さ（peephole: のぞき穴）
 
-
-# 出力ファイル名
+# 出力ファイル名 例：rib_master_print_20210901_123456.dxf
 current_time = datetime.now().strftime("%Y%m%d_%H%M%S")
 if all_at_once:
     file_name = os.path.join(
@@ -125,14 +129,16 @@ def main():
         alpha_rib = alpha_rib_arr[id]
 
         do_ribset = False
-        if spar == "1番" or spar == "2番" or spar == "3番":
+        if spar == "0番" or spar == "1番" or spar == "2番" or spar == "3番":
             do_ribset = True
-            if spar == "1番":
+            if spar == "0番":
                 ribset_line_num = 0
-            elif spar == "2番":
+            elif spar == "1番":
                 ribset_line_num = 1
-            elif spar == "3番":
+            elif spar == "2番":
                 ribset_line_num = 2
+            elif spar == "3番":
+                ribset_line_num = 3
             ribset_line_offsets = np.ravel(ribset_line[:, ribset_line_num])
             channel_distances = np.ravel(channel_distance[:, ribset_line_num])
 
@@ -151,7 +157,7 @@ def main():
                 },
             )
             if mode == "lasercut":
-                point_ref = np.array([spar_position * chord+10, 200])
+                point_ref = np.array([spar_position * chord + 10, 200])
             elif mode == "jig":
                 point_ref = np.array([jig_width / 2, 0])
 
@@ -528,10 +534,8 @@ def main():
             ctx = RenderContext(doc)
             out = MatplotlibBackend(ax)
             Frontend(ctx, out).draw_layout(msp, finalize=True)
-            fig.savefig( os.path.join(output_dir, f"rib_{id}.png"))
+            fig.savefig(os.path.join(output_dir, f"rib_{id}.png"))
             plt.close()
-            
-
 
     if all_at_once:
         doc.saveas(file_name)
