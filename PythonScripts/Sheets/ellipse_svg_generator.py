@@ -1,5 +1,6 @@
 import pandas as pd
 import svgwrite
+import numpy as np
 
 # DPIの設定
 DPI = 96
@@ -10,6 +11,8 @@ df = pd.read_excel("input.xlsx", header=0, index_col=0)
 print(df)
 
 # 変数
+osamu_thickness = 15 * mm
+osamu_width = 50 * mm
 text_height = 10 * mm
 rib_nums = df.index
 heights = df["major_axis"]
@@ -43,12 +46,18 @@ for rib_num in rib_nums:
     y = frame_height / 2
     center = (x, y)
     dwg.add(dwg.ellipse(center, r=(width, height), class_="red"))
+    
+    # オサムくんの厚さを作成
+    dwg.add(dwg.line((x+width+osamu_thickness, y+osamu_width/2),(x+width+osamu_thickness, y-osamu_width/2),class_="red"))
+    dwg.add(dwg.line((x+width+osamu_thickness, y+osamu_width/2),(x+width*np.sqrt(1-(osamu_width/2/height)**2), y+osamu_width/2),class_="red"))
+    dwg.add(dwg.line((x+width+osamu_thickness, y-osamu_width/2),(x+width*np.sqrt(1-(osamu_width/2/height)**2), y-osamu_width/2),class_="red"))
+    
 
     # 2つの軸を作成
     axis_x_1_start = (x - frame_width / 2, y)
     axis_x_1_end = (x - width, y)
     axis_x_2_start = (x + width, y)
-    axis_x_2_end = (x + frame_width / 2, y)
+    axis_x_2_end = (x + frame_width / 2 + osamu_thickness, y)
     axis_y_1_start = (x, y - frame_height / 2)
     axis_y_1_end = (x, y - height)
     axis_y_2_start = (x, y + height)
@@ -69,20 +78,20 @@ for rib_num in rib_nums:
     dwg.add(
         dwg.line(
             (x - frame_width / 2, y + frame_height / 2),
-            (x + frame_width / 2, y + frame_height / 2),
+            (x + frame_width / 2 + osamu_thickness, y + frame_height / 2),
             class_="red",
         )
     )
     dwg.add(
         dwg.line(
-            (x + frame_width / 2, y + frame_height / 2),
-            (x + frame_width / 2, y - frame_height / 2),
+            (x + frame_width / 2 + osamu_thickness, y + frame_height / 2),
+            (x + frame_width / 2 + osamu_thickness, y - frame_height / 2),
             class_="red",
         )
     )
     dwg.add(
         dwg.line(
-            (x + frame_width / 2, y - frame_height / 2),
+            (x + frame_width / 2 + osamu_thickness, y - frame_height / 2),
             (x - frame_width / 2, y - frame_height / 2),
             class_="red",
         )
