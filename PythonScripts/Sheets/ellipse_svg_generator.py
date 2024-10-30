@@ -41,8 +41,8 @@ def main():
         height = (diam_z_arr[id]+hole_margin) * mm
         width = (diam_x_arr[id]+hole_margin) * mm
 
-        frame_height = height * 2 + text_height
-        frame_width = width * 2 + text_height
+        frame_height = height + text_height
+        frame_width = width + text_height
 
         # SVGファイルの設定
         dwg = svgwrite.Drawing("output.svg")
