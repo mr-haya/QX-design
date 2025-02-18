@@ -21,7 +21,7 @@ from classes.Geometry import GeometricalAirfoil
 
 mode = "jig"  # "print", "lasercut", "jig"
 # "print":紙で印刷する用 番号あり, "lasercut":レーザーカッター用 線の両端のみ描画, "jig":リブ付のジグ用
-preview = True  # matplotlibでプレビューを表示するか
+preview = False  # matplotlibでプレビューを表示するか
 all_at_once = False  # 一つの図面、ファイルにまとめるか
 
 protrude_length = 1  # 線引き線の飛び出し長さ

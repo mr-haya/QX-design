@@ -13,7 +13,7 @@ class Settings:
     # ファイルパス
     script_dir = os.path.dirname(os.path.abspath(__file__))
     BOOK_PATH = os.path.join(
-        script_dir, "..", "..", "..", "QX-XX.xlsm"
+        script_dir, "..", "..", "..", "QX-25.xlsm"
     )  # 直接実行する場合に必要
     AIRFOIL_PATH = os.path.join(script_dir, "..", "..", "..", "Airfoils", "source")
     OUTPUTS_PATH = os.path.join(
